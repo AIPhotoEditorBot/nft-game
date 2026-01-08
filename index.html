@@ -115,14 +115,16 @@
         function spawnDots() {
             if (level === 5) {
                 // Уровень 5: Фиксированные координаты
-                // Точка 1: Внизу в центре
+               // Точка 1: Внизу в центре
                 dot1.style.left = 'calc(50% - 35px)';
                 dot1.style.top = 'auto';
                 dot1.style.bottom = '20px';
-                
-                // Точка 2: Слева в центре
-                dot2.style.left = '10px';
-                dot2.style.top = 'calc(50% - 35px)';
+                dot1.style.right = 'auto'; // На всякий случай сбрасываем правый отступ
+    
+    // Точка 2: СПРАВА в центре
+                dot2.style.left = 'auto';           // Отключаем привязку к левому краю
+                dot2.style.right = '10px';          // Прижимаем к правому краю (10px отступ)
+                dot2.style.top = 'calc(50% - 35px)'; // Центрируем по вертикали
                 dot2.style.bottom = 'auto';
             } else {
                 // Случайные координаты (но чтобы не накладывались)
