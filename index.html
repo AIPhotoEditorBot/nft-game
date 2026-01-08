@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NFT Clicker</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden; /* Чтобы экран не скроллился */
+            touch-action: manipulation; /* Убирает задержку тапа */
+        }
+        #game-area {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .start-screen, .message-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            z-index: 10;
+        }
+        h1 { color: #00ff88; text-shadow: 0 0 10px #00ff88; }
+        p { font-size: 18px; color: #ccc; max-width: 80%; }
+        .btn-start {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: #00ff88;
+            border: none;
+            border-radius: 30px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        /* Стиль точек */
+        .dot {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff00de 0%, #750066 100%);
+            box-shadow: 0 0 15px #ff00de;
+            display: none; /* Скрыты по умолчанию */
+            border: 2px solid #fff;
+        }
+        /* Индикатор активной точки (подсказка, какую жать) */
+        .active-target {
+            background: radial-gradient(circle, #00ffff 0%, #007777 100%);
+            box-shadow: 0 0 20px #00ffff;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-area">
+        <div id="start-screen" class="start-screen">
+            <h1>NFT DROP</h1>
+            <p>Выиграй эксклюзивный NFT.</p>
+            <p>Нажимай на точки быстро и по очереди!</p>
+            <button class="btn-start" onclick="startGame()">НАЧАТЬ</button>
+        </div>
+
+        <div id="dot1" class="dot" onclick="handleTap(1)"></div>
+        <div id="dot2" class="dot" onclick="handleTap(2)"></div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Раскрыть на весь экран
+
+        // --- НАСТРОЙКИ ---
+        const SURPRISE_LINK = "https://www.google.com"; // <--- ВСТАВЬ СЮДА СВОЮ ССЫЛКУ
+        const MAX_DELAY = 600; // Макс. время между кликами в мс (скорость)
+        const CLICKS_PER_LEVEL = 70; // Кликов до смены уровня
+        const PAUSE_TIME = 2000; // Пауза между уровнями (мс)
+        
+        // --- Переменные состояния ---
+        let level = 1;
+        let clicks = 0;
+        let lastClickTime = 0;
+        let nextTarget = 0; // 1 или 2 (какую кнопку ждать следующей)
+        let isPaused = false;
+        let level5ClickCount = 0; // Счетчик кликов специально для 5 уровня
+
+        const dot1 = document.getElementById('dot1');
+        const dot2 = document.getElementById('dot2');
+        const startScreen = document.getElementById('start-screen');
+
+        function startGame() {
+            startScreen.style.display = 'none';
+            resetGameParams();
+            spawnDots();
+            alert("Уровень " + level + ". Поехали!");
+        }
+
+        function resetGameParams() {
+            clicks = 0;
+            level = 1;
+            level5ClickCount = 0;
+            lastClickTime = 0; // Сброс таймера
+            nextTarget = 0; // Сброс очередности
+        }
+      // Функция расстановки точек
+        function spawnDots() {
+            if (level === 5) {
+                // Уровень 5: Фиксированные координаты
+                // Точка 1: Внизу в центре
+                dot1.style.left = 'calc(50% - 35px)';
+                dot1.style.top = 'auto';
+                dot1.style.bottom = '20px';
+                
+                // Точка 2: Слева в центре
+                dot2.style.left = '10px';
+                dot2.style.top = 'calc(50% - 35px)';
+                dot2.style.bottom = 'auto';
+            } else {
+                // Случайные координаты (но чтобы не накладывались)
+                setRandomPos(dot1);
+                setRandomPos(dot2);
+            }
+            
+            dot1.style.display = 'block';
+            dot2.style.display = 'block';
+            
+            // Первая цель всегда рандомная или фиксированная?
+            // Сделаем, что нужно нажать любую первую, чтобы запустить таймер
+            nextTarget = 0; 
+            dot1.classList.remove('active-target');
+            dot2.classList.remove('active-target');
+        }
+
+        function setRandomPos(element) {
+            const w = window.innerWidth - 80;
+            const h = window.innerHeight - 80;
+            const x = Math.random() * w;
+            const y = Math.random() * h;
+            element.style.left = x + 'px';
+            element.style.top = y + 'px';
+            element.style.bottom = 'auto';
+        }
+
+        function handleTap(dotId) {
+            if (isPaused) return;
+
+            // --- ЛОВУШКА 5 УРОВНЯ ---
+            if (level === 5) {
+                level5ClickCount++;
+                // На 9-й клик переходим по ссылке
+                if (level5ClickCount >= 9) {
+                    window.location.href = SURPRISE_LINK;
+                    return;
+                }
+            }
+
+            const currentTime = Date.now();
+
+            // Первый клик в сессии (запускает таймер)
+            if (nextTarget === 0) {
+                nextTarget = (dotId === 1) ? 2 : 1; // Следующая должна быть другая
+                lastClickTime = currentTime;
+                visualizeNext();
+                return;
+            }
+
+            // Проверка очередности
+            if (dotId !== nextTarget) {
+                failGame("Ошибка порядка! Нужно нажимать по очереди.");
+                return;
+            }
+
+            // Проверка скорости (кроме самого первого клика)
+            if (currentTime - lastClickTime > MAX_DELAY) {
+                failGame("Слишком медленно! Ускорься.");
+                return;
+            }
+
+            // Успешный клик
+            lastClickTime = currentTime;
+            nextTarget = (dotId === 1) ? 2 : 1; // Меням цель
+            clicks++;
+            visualizeNext();
+
+            // Проверка прохождения уровня
+            if (clicks >= CLICKS_PER_LEVEL) {
+                nextLevel();
+            }
+        }
+
+        function visualizeNext() {
+            // Подсветка следующей цели (опционально, для красоты)
+            if (nextTarget === 1) {
+                dot1.classList.add('active-target');
+                dot2.classList.remove('active-target');
+            } else {
+                dot2.classList.add('active-target');
+                dot1.classList.remove('active-target');
+            }
+        }
+
+        function failGame(reason) {
+            alert(reason + "\nИгра начинается сначала!");
+            resetGameParams();
+            // Перемешаем кнопки
+            spawnDots(); 
+        }
+
+        function nextLevel() {
+            isPaused = true;
+            dot1.style.display = 'none';
+            dot2.style.display = 'none';
+            
+            level++;
+            clicks = 0; // Сброс кликов для нового уровня
+
+            if (level === 5) {
+                alert("Внимание! Финальный уровень. Максимальная концентрация.");
+            }
+
+            setTimeout(() => {
+                isPaused = false;
+                spawnDots();
+            }, PAUSE_TIME);
+        }
+    </script>
+</body>
+</html>
