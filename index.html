@@ -80,7 +80,7 @@
         tg.expand(); // Раскрыть на весь экран
 
         // --- НАСТРОЙКИ ---
-        const SURPRISE_LINK = "t.me/nft/TamaGadget-18667"; // <--- ВСТАВЬ СЮДА СВОЮ ССЫЛКУ
+        const SURPRISE_LINK = "https://t.me/nft/TamaGadget-18667"; // <--- ВСТАВЬ СЮДА СВОЮ ССЫЛКУ
         const MAX_DELAY = 600; // Макс. время между кликами в мс (скорость)
         const CLICKS_PER_LEVEL = 20; // Кликов до смены уровня
         const PAUSE_TIME = 2000; // Пауза между уровнями (мс)
@@ -158,7 +158,7 @@
                 level5ClickCount++;
                 // На 9-й клик переходим по ссылке
                 if (level5ClickCount >= 9) {
-                    window.location.href = SURPRISE_LINK;
+                    tg.openLink(SURPRISE_LINK);
                     return;
                 }
             }
